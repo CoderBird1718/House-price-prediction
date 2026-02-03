@@ -16,7 +16,7 @@ A machine learning web application built with Python and Streamlit that predicts
 - Clean and user-friendly UI
 - Input validation and error handling
 
-## 🛠️ Technologies Used
+##  Technologies Used
 
 - **Python 3.x**
 - **Streamlit** - Web application framework
@@ -28,11 +28,11 @@ A machine learning web application built with Python and Streamlit that predicts
 
 Create a `requirements.txt` file with the following dependencies:
 
-- streamlit= 1.31.0
-- joblib = 1.3.2
-- pandas = 2.1.4
-- scikit-learn = 1.4.0
-- numpy = 1.26.3
+- streamlit==1.31.0
+- joblib==1.3.2
+- pandas==2.2.0
+- numpy==1.26.4
+- scikit-learn==1.4.0
 
 ##  Project Structure
 
