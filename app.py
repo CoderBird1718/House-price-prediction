@@ -3,9 +3,10 @@ import joblib
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import traceback
 
 # --------------------
-# App Config
+# App Config (mobile‑friendly)
 # --------------------
 st.set_page_config(
     page_title="House Price Predictor",
@@ -14,15 +15,23 @@ st.set_page_config(
 )
 
 # --------------------
-# Load model artifacts safely
+# Safe model loading
 # --------------------
-@st.cache_resource
+@st.cache_resource(show_spinner=True)
 def load_artifacts():
-    model = joblib.load("house_price_model.pkl")
-    columns = joblib.load("model_columns.pkl")
-    return model, columns
+    try:
+        model = joblib.load("house_price_model.pkl")
+        columns = joblib.load("model_columns.pkl")
+        return model, list(columns), None
+    except Exception as e:
+        return None, None, traceback.format_exc()
 
-model, columns = load_artifacts()
+model, columns, load_error = load_artifacts()
+
+if load_error:
+    st.error("🚨 Failed to load model files")
+    st.code(load_error)
+    st.stop()
 
 # --------------------
 # Helpers
@@ -34,12 +43,11 @@ def encode_yes_no(val: str) -> int:
 def format_currency(val: float) -> str:
     return f"₹{val:,.0f}"
 
-
 # --------------------
 # UI
 # --------------------
 st.title("🏠 House Price Prediction")
-st.caption("Mobile‑friendly · Validated inputs · Visual insights")
+st.caption("Stable · Validated · Cloud‑ready")
 
 with st.form("inputs"):
     area = st.number_input("Area (sq ft)", min_value=300, max_value=20000, step=100)
@@ -66,21 +74,13 @@ with st.form("inputs"):
     submitted = st.form_submit_button("Predict Price")
 
 # --------------------
-# Validation
+# Validation + Prediction
 # --------------------
 if submitted:
-    errors = []
     if area < 300:
-        errors.append("Area must be at least 300 sq ft")
-
-    if errors:
-        for e in errors:
-            st.error(e)
+        st.error("Area must be at least 300 sq ft")
         st.stop()
 
-    # --------------------
-    # Build model input
-    # --------------------
     input_data = {
         "area": area,
         "bedrooms": bedrooms,
@@ -102,26 +102,28 @@ if submitted:
     elif furnishing == "unfurnished":
         input_data["furnishingstatus_unfurnished"] = 1
 
-    final_input = np.array([[input_data.get(col, 0) for col in columns]])
-
-    # --------------------
-    # Prediction
-    # --------------------
-    prediction = float(model.predict(final_input)[0])
+    try:
+        final_input = np.array([[input_data.get(col, 0) for col in columns]])
+        prediction = float(model.predict(final_input)[0])
+    except Exception as e:
+        st.error("Prediction failed")
+        st.code(traceback.format_exc())
+        st.stop()
 
     st.success(f"Estimated House Price: {format_currency(prediction)}")
 
     # --------------------
-    # Simple Explainability Chart
+    # Chart
     # --------------------
-    st.subheader("📊 Price Sensitivity (Area Impact)")
+    st.subheader("📊 Area vs Price")
 
     areas = np.linspace(area * 0.6, area * 1.4, 8)
     preds = []
+
+    area_idx = columns.index("area")
     for a in areas:
         temp = final_input.copy()
-        idx = list(columns).index("area")
-        temp[0, idx] = a
+        temp[0, area_idx] = a
         preds.append(model.predict(temp)[0])
 
     df = pd.DataFrame({"Area (sq ft)": areas.astype(int), "Predicted Price": preds})
